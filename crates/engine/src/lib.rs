@@ -27,6 +27,7 @@ pub mod export;
 pub mod field_table;
 pub mod js;
 pub mod links;
+mod model_fields;
 pub mod ocr;
 pub mod optimizer;
 pub mod print_raster;

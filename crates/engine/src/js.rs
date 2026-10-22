@@ -348,16 +348,24 @@ impl Session {
         let all = doc.info.pages.len();
         let list: Vec<usize> = if pages.is_empty() { (0..all).collect() } else { pages.iter().copied().filter(|p| *p < all).collect() };
         let mut out = Vec::new();
+        // An installed field-detection model replaces the built-in detector (model_fields.rs).
+        let model = crate::model_fields::model();
         for page in list {
             let Some(info) = doc.info.pages.get(page) else { continue };
             let res = r.render(pdfcraft_render::RenderRequest { page, kind: pdfcraft_render::RequestKind::Text, scale: 1.0, ..Default::default() });
-            let shapes = pdfcraft_forms::detect::page_shapes(cos, page);
             let existing: Vec<[f64; 4]> = doc.form.iter().flat_map(|f| f.widgets.iter()).filter(|w| w.page == Some(page)).map(|w| w.rect).collect();
-            let (found, turn) = if shapes.boxes.is_empty() && shapes.rules.is_empty() && crate::scan_fields::is_scan(doc, page, info) {
-                self.detect_on_scan(id, &mut r, page, res.text.as_deref(), &existing, &taken)
-            } else {
-                let words = res.text.map(|t| detection_words(&t, info)).unwrap_or_default();
-                (pdfcraft_forms::detect::detect(&words, &shapes, &existing, &taken), 0)
+            let modelled = model.as_deref().and_then(|m| self.detect_with_model(id, &mut r, m, page, res.text.as_deref(), &existing, &taken));
+            let (found, turn) = match modelled {
+                Some(found) => found,
+                None => {
+                    let shapes = pdfcraft_forms::detect::page_shapes(cos, page);
+                    if shapes.boxes.is_empty() && shapes.rules.is_empty() && crate::scan_fields::is_scan(doc, page, info) {
+                        self.detect_on_scan(id, &mut r, page, res.text.as_deref(), &existing, &taken)
+                    } else {
+                        let words = res.text.map(|t| detection_words(&t, info)).unwrap_or_default();
+                        (pdfcraft_forms::detect::detect(&words, &shapes, &existing, &taken), 0)
+                    }
+                }
             };
             for c in found {
                 taken.push(c.name.clone());

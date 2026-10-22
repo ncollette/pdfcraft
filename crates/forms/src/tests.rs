@@ -1986,6 +1986,30 @@ fn detection_finds_blanks_rules_boxes_and_names_them() {
 }
 
 #[test]
+fn fields_found_by_a_model_are_named_from_their_labels() {
+    use crate::detect::*;
+    let w = |t: &str, x0: f64, y0: f64, x1: f64| Word { text: t.into(), rect: [x0, y0, x1, y0 + 8.0] };
+    // A labelled table cell (the label in its top-left corner, the blank under it), a check box
+    // before its label, and a blank with nothing near it.
+    let words = vec![w("First", 50.0, 712.0, 72.0), w("Name", 75.0, 712.0, 98.0), w("Married", 318.0, 702.0, 350.0)];
+    let found = vec![
+        (Kind::CheckBox, [304.0, 701.0, 313.0, 710.0]),
+        (Kind::Text, [50.0, 690.0, 240.0, 708.0]),
+        (Kind::Text, [50.0, 100.0, 240.0, 118.0]),
+        // Overlaps the cell's field: a duplicate.
+        (Kind::Text, [55.0, 692.0, 200.0, 706.0]),
+        // Not a rectangle.
+        (Kind::Text, [f64::NAN, 0.0, 10.0, 10.0]),
+    ];
+    let placed = place(&found, &words, &[], &["Text1".into()]);
+    let names: Vec<(&str, &Kind)> = placed.iter().map(|c| (c.name.as_str(), &c.kind)).collect();
+    assert_eq!(names, [("First Name", &Kind::Text), ("Married", &Kind::CheckBox), ("Text2", &Kind::Text)], "{placed:?}");
+    // Fields already there: nothing new.
+    let again = place(&found, &words, &placed.iter().map(|c| c.rect).collect::<Vec<_>>(), &[]);
+    assert!(again.is_empty(), "{again:?}");
+}
+
+#[test]
 fn detection_makes_a_row_of_touching_cells_one_comb_field() {
     use crate::detect::*;
     let w = |t: &str, x0: f64, y0: f64, x1: f64| Word { text: t.into(), rect: [x0, y0, x1, y0 + 10.0] };

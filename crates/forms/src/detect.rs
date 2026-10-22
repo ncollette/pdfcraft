@@ -410,6 +410,35 @@ pub fn detect(words: &[Word], shapes: &Shapes, existing: &[[f64; 4]], taken: &[S
         let l = label_for(&labels, rect, false);
         push(Kind::Text, rect, l, &mut out);
     }
+    finish(out, taken)
+}
+
+/// Fields found by other means (a field-detection model reading a picture of the page), each a
+/// kind and a rectangle in the same space as `words`, named from their labels as [`detect`] names
+/// its own: check boxes by the words to their right, other fields by the words to their left or
+/// just above. A field overlapping one of `existing` or an earlier one is dropped; names are unique
+/// against `taken`, and the fields come in reading order.
+pub fn place(found: &[(Kind, [f64; 4])], words: &[Word], existing: &[[f64; 4]], taken: &[String]) -> Vec<Candidate> {
+    let overlaps = |a: [f64; 4], b: [f64; 4]| a[0] < b[2] - 1.0 && b[0] < a[2] - 1.0 && a[1] < b[3] - 1.0 && b[1] < a[3] - 1.0;
+    let labels: Vec<Word> = words.iter().filter(|w| !(w.text.len() >= 3 && w.text.chars().all(|c| c == '_'))).cloned().collect();
+    let mut out: Vec<Candidate> = Vec::with_capacity(found.len().min(MAX_PLACED));
+    for (kind, rect) in found.iter().take(MAX_PLACED) {
+        let valid = rect.iter().all(|v| v.is_finite()) && rect[2] > rect[0] && rect[3] > rect[1];
+        if !valid || existing.iter().chain(out.iter().map(|c| &c.rect)).any(|e| overlaps(*e, *rect)) {
+            continue;
+        }
+        let name = label_for(&labels, *rect, matches!(kind, Kind::CheckBox));
+        out.push(Candidate { kind: kind.clone(), rect: *rect, name });
+    }
+    finish(out, taken)
+}
+
+/// The most fields [`place`] takes from one page; a model's output is capped before this, so it
+/// only bounds the work a malformed caller can cause.
+const MAX_PLACED: usize = 2000;
+
+/// Sort `out` into reading order and give every field a unique name.
+fn finish(mut out: Vec<Candidate>, taken: &[String]) -> Vec<Candidate> {
     // Reading order: top to bottom, left to right.
     // Rows: fields whose middles are within 8 pt of the row's first.
     out.sort_by(|a, b| mid(b.rect).total_cmp(&mid(a.rect)));

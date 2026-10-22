@@ -14,9 +14,9 @@ use pdfcraft_render::{PageInfo, PageRenderer, PageText, RenderRequest};
 use crate::{DocId, Document, Session, ocr};
 
 /// Pixels per point the page is rendered at for its lines (144 dpi).
-const SCALE: f32 = 2.0;
+pub(crate) const SCALE: f32 = 2.0;
 /// The longest side of that rendering, in pixels.
-const MAX_SIDE: f32 = 3000.0;
+pub(crate) const MAX_SIDE: f32 = 3000.0;
 /// A page is a scan when its images cover at least this share of it.
 const COVERED: f64 = 0.5;
 /// Recognised "words" less tall than this (points) are specks read as letters, and would make
@@ -46,11 +46,11 @@ pub(crate) fn is_scan(doc: &Document, page: usize, info: &PageInfo) -> bool {
 }
 
 /// The page as displayed, in points with y up: where detection on a scan works.
-struct Frame<'a>(&'a PageInfo);
+pub(crate) struct Frame<'a>(pub(crate) &'a PageInfo);
 
 impl Frame<'_> {
     /// The box around view-space points (y down).
-    fn view_box(&self, points: impl IntoIterator<Item = [f32; 2]>) -> Option<[f64; 4]> {
+    pub(crate) fn view_box(&self, points: impl IntoIterator<Item = [f32; 2]>) -> Option<[f64; 4]> {
         let h = f64::from(self.0.height);
         let mut out = [f64::INFINITY, f64::INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY];
         for [x, y] in points {
@@ -61,12 +61,12 @@ impl Frame<'_> {
     }
 
     /// A user-space rectangle (or the box around user-space points) in the frame.
-    fn user_box(&self, points: impl IntoIterator<Item = [f64; 2]>) -> Option<[f64; 4]> {
+    pub(crate) fn user_box(&self, points: impl IntoIterator<Item = [f64; 2]>) -> Option<[f64; 4]> {
         self.view_box(points.into_iter().map(|[x, y]| self.0.user_to_view(x as f32, y as f32)))
     }
 
     /// A frame rectangle in user space.
-    fn user_rect(&self, r: [f64; 4]) -> [f64; 4] {
+    pub(crate) fn user_rect(&self, r: [f64; 4]) -> [f64; 4] {
         let h = f64::from(self.0.height);
         let a = self.0.view_to_user(r[0] as f32, (h - r[1]) as f32);
         let b = self.0.view_to_user(r[2] as f32, (h - r[3]) as f32);
@@ -74,7 +74,7 @@ impl Frame<'_> {
     }
 }
 
-fn corners(r: [f64; 4]) -> [[f64; 2]; 4] {
+pub(crate) fn corners(r: [f64; 4]) -> [[f64; 2]; 4] {
     [[r[0], r[1]], [r[2], r[1]], [r[2], r[3]], [r[0], r[3]]]
 }
 
@@ -118,7 +118,7 @@ impl Session {
     }
 
     /// The words text recognition reads on `page`, in the frame; none without the models.
-    fn recognized_words(&self, id: DocId, page: usize, frame: &Frame) -> Vec<Word> {
+    pub(crate) fn recognized_words(&self, id: DocId, page: usize, frame: &Frame) -> Vec<Word> {
         if !ocr::available() {
             return Vec::new();
         }

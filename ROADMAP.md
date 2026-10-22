@@ -2,6 +2,7 @@
 
 **Stage: alpha** · next: beta, ~25% (ready for real work 50% → 75%) and ~400–700 h away
 
+> **Last reviewed:** 2026-10-22 · **Last updated:** 2026-10-22 · **Change:** minor (M6: Prepare a form ▸ Detect form fields uses an installed FFDNet field-detection model in place of the built-in detector, turning sideways forms upright; estimates unchanged)
 > **Last reviewed:** 2026-10-21 · **Last updated:** 2026-10-21 · **Change:** minor (M3, #3808: the Pages inspector has an independent 50–150% thumbnail size slider and buttons; selection and current-page following are retained, with headless ui.set coverage. Estimates unchanged.)
 > **Last reviewed:** 2026-10-20 | **Last updated:** 2026-10-20 | **Change:** minor (M11 #3507: image merging preserves content stream boundaries; estimates unchanged)
 > **Last reviewed:** 2026-10-20 | **Last updated:** 2026-10-20 | **Change:** minor (M10, #3532 partial: vector printing retains existing appearances with absent Subtype; estimates unchanged)

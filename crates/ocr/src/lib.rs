@@ -12,6 +12,8 @@
 
 use std::path::{Path, PathBuf};
 
+pub mod fields;
+
 pub use pdfcraft_fonts::helvetica_width;
 
 /// The model files, as named in ATTRIBUTION.toml.
